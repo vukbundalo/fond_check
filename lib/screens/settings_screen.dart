@@ -48,12 +48,12 @@ class SettingsScreenState extends State<SettingsScreen> {
           children: [
             TextField(
               controller: _licenceController,
-              decoration: const InputDecoration(labelText: "License Key"),
+              decoration: const InputDecoration(labelText: "Licenca apoteke"),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _orgIdController,
-              decoration: const InputDecoration(labelText: "Main Org ID"),
+              decoration: const InputDecoration(labelText: "Kod apoteke"),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 32),

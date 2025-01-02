@@ -34,16 +34,20 @@ class MainScreenState extends State<MainScreen> {
   }
 
   Future<void> fetchPrescriptions() async {
-    if (pLicence == null || pMainOrgId == null || pLicence!.isEmpty || pMainOrgId!.isEmpty) {
+    if (pLicence == null ||
+        pMainOrgId == null ||
+        pLicence!.isEmpty ||
+        pMainOrgId!.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please configure settings first!")),
+          const SnackBar(content: Text("Molimo prvo podesite licencu i kod u podešavanjima!")),
         );
       }
       return;
     }
 
-    final date = "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}";
+    final date =
+        "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}";
     final url =
         "http://fabis.eastcode.biz:51111/api/prescriptions?p_main_org_id=$pMainOrgId&p_date_from=$date&p_date_to=$date&p_licence=$pLicence";
 
@@ -55,7 +59,7 @@ class MainScreenState extends State<MainScreen> {
           prescriptions = json.decode(response.body)["items"];
         });
       } else {
-        throw Exception("Failed to load data");
+        throw Exception("Učitavanje podataka nije uspijelo.");
       }
     } catch (e) {
       if (mounted) {
@@ -118,11 +122,17 @@ class MainScreenState extends State<MainScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Show the selected date
+            Text(
+              "Selected Date: ${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 ElevatedButton(
                   onPressed: selectDate,
-                  child: const Text("Select Date"),
+                  child: const Text("Change Date"),
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton(
@@ -131,6 +141,7 @@ class MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
             TextField(
               decoration: const InputDecoration(labelText: "Search"),
               onChanged: (value) {
@@ -139,16 +150,43 @@ class MainScreenState extends State<MainScreen> {
                 });
               },
             ),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
                 itemCount: filteredPrescriptions.length,
                 itemBuilder: (context, index) {
                   final item = filteredPrescriptions[index];
                   return Card(
-                    child: ListTile(
-                      title: Text(item["osiguranik_ime_prezime"]),
-                      subtitle: Text(
-                          "Pharmacy: ${item["pj_apoteka"]}\nDate: ${item["datum_izdavanaja_lijeka"]}"),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Pacijent: ${item["osiguranik_ime_prezime"]} (${item["osiguranik_jmb"]})",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          Text(
+                              "Apoteka u kojoj je recept izdat: ${item["pj_apoteka"]}"),
+                          Text(
+                              "Datum propisivanja recepta: ${item["recept_datum_izdavanaja"]}"),
+                          Text("Fond šifra lijeka: ${item["lijek_oznaka"]}"),
+                          Text(
+                              "Fond lista lijeka: ${item["lijek_lista_oznaka"]}"),
+                          Text(
+                              "Dijagnoza: ${item["recepet_dijagnoza_oznaka"]}"),
+                          Text("Količina: ${item["kolicina"]}"),
+                          Text("Iznos: ${item["iznos"]}"),
+                          Text(
+                              "Da li je na teret fonda?: ${item["na_teret_fonda"]}"),
+                          Text(
+                              "Ljekar koji je propisao recept: ${item["recept_ljekar_ime_prezima"]}"),
+                          Text(
+                              "Farmaceut: ${item["ime_i_prezime_farmaceuta"]} (${item["izis_farmaceut_id"]})"),
+                        ],
+                      ),
                     ),
                   );
                 },
