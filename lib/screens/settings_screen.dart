@@ -13,7 +13,7 @@ class SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _orgIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  bool _isAdmin = false; // To track if the user is authenticated as admin
+  bool _isAdmin = false; // Track admin authentication
 
   // List of pharmacies
   final List<Map<String, String>> pharmacies = [
@@ -112,7 +112,7 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return; // Ensure the widget is still in the tree
+    if (!mounted) return;
     setState(() {
       _licenceController.text = prefs.getString('p_licence') ?? "";
       _orgIdController.text = prefs.getString('p_main_org_id') ?? "";
@@ -124,11 +124,24 @@ class SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('p_licence', _licenceController.text);
     await prefs.setString('p_main_org_id', _orgIdController.text);
 
-    if (!mounted) return; // Ensure the widget is still in the tree
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Podešavanja sačuvana!")),
     );
-    Navigator.pop(context); // Return to the previous screen
+    Navigator.pop(context);
+  }
+
+  Future<void> clearSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('p_licence');
+    await prefs.remove('p_main_org_id');
+    setState(() {
+      _licenceController.text = "";
+      _orgIdController.text = "";
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Licenca i kod apoteke su očišćeni!")),
+    );
   }
 
   Future<void> authenticateAdmin() async {
@@ -149,7 +162,7 @@ class SettingsScreenState extends State<SettingsScreen> {
                   setState(() {
                     _isAdmin = true;
                   });
-                  Navigator.pop(context); // Close the dialog
+                  Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Pogrešna šifra!")),
@@ -184,7 +197,7 @@ class SettingsScreenState extends State<SettingsScreen> {
               decoration: const InputDecoration(labelText: "Kod apoteke"),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
             if (_isAdmin)
               DropdownButtonFormField<Map<String, String>>(
                 decoration:
@@ -210,14 +223,21 @@ class SettingsScreenState extends State<SettingsScreen> {
                   onPressed: saveSettings,
                   child: const Text("Sačuvaj"),
                 ),
-                const SizedBox(height: 32),
-                if (!_isAdmin)
-                  ElevatedButton(
-                    onPressed: authenticateAdmin,
-                    child: const Text("Prijavite se kao administrator"),
+                ElevatedButton(
+                  onPressed: clearSettings,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
                   ),
+                  child: const Text("Obriši podatke"),
+                ),
               ],
             ),
+            const SizedBox(height: 32),
+            if (!_isAdmin)
+              ElevatedButton(
+                onPressed: authenticateAdmin,
+                child: const Text("Prijavite se kao administrator"),
+              ),
           ],
         ),
       ),
