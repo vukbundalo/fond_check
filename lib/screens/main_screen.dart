@@ -20,6 +20,8 @@ class MainScreenState extends State<MainScreen> {
   DateTime selectedDate = DateTime.now();
   List<dynamic> prescriptions = [];
   String searchQuery = "";
+  bool isLoading = false; // Track loading state
+  String errorMessage = ""; // Track error message
 
   @override
   void initState() {
@@ -44,12 +46,18 @@ class MainScreenState extends State<MainScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text("Molimo prvo podesite licencu i kod u podešavanjima!")),
+            content:
+                Text("Molimo prvo podesite licencu i kod u podešavanjima!"),
+          ),
         );
       }
       return;
     }
+
+    setState(() {
+      isLoading = true; // Show loading indicator
+      errorMessage = ""; // Reset error message
+    });
 
     final date =
         "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}";
@@ -59,19 +67,21 @@ class MainScreenState extends State<MainScreen> {
     try {
       final response = await http.get(Uri.parse(url));
       if (!mounted) return; // Ensure the widget is still in the tree
+
       if (response.statusCode == 200) {
         setState(() {
           prescriptions = json.decode(response.body)["items"];
+          isLoading = false; // Hide loading indicator
         });
       } else {
         throw Exception("Učitavanje podataka nije uspijelo.");
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
-      }
+      setState(() {
+        isLoading = false; // Hide loading indicator
+        errorMessage =
+            "Konekcija sa serverom nije uspijela. Provjerite internet konekciju i pokušajte ponovo.";
+      });
     }
   }
 
@@ -103,9 +113,9 @@ class MainScreenState extends State<MainScreen> {
 
       // Open file picker for the user to choose the save location
       String? filePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Prescription Data',
+        dialogTitle: 'Sačuvaj podatke o receptu',
         fileName:
-            'prescription_${rawJson["osiguranik_ime_prezime"]}_${selectedDate.day}.${selectedDate.month}.${selectedDate.year}.$fileExtension',
+            'recept_${rawJson["osiguranik_ime_prezime"]}_${selectedDate.day}.${selectedDate.month}.${selectedDate.year}.$fileExtension',
         type: FileType.custom,
         allowedExtensions: [fileExtension],
       );
@@ -118,8 +128,8 @@ class MainScreenState extends State<MainScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(
-                    "Raw data saved successfully as .$fileExtension file!")),
+                content:
+                    Text("Podaci su uspiješno sačuvani .$fileExtension file!")),
           );
         }
       }
@@ -135,8 +145,9 @@ class MainScreenState extends State<MainScreen> {
 
   // Helper method to format the date:
   String _formatDate(String? date) {
-    if (date == null || date.isEmpty)
+    if (date == null || date.isEmpty) {
       return "Nepoznato"; // Handle null or empty dates
+    }
     try {
       final parsedDate = DateTime.parse(date); // Parse the string to DateTime
       return DateFormat('dd.MM.yyyy').format(parsedDate); // Format the DateTime
@@ -252,108 +263,134 @@ class MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: filteredPrescriptions.isEmpty
+              child: isLoading
                   ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Nema dostupnih recepata za prikaz.",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Izaberite datum i kliknite na dugme \"Preuzmi recepte sa fond servera\".",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Postarajte se da ste unijeli licencu i kod apoteke u podešavanjima programa (Kotačić u gornjem desnom uglu) ako to nikada do sada niste uradili.",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                      child: CircularProgressIndicator(
+                        color: Colors.blue,
                       ),
                     )
-                  : ListView.builder(
-                      itemCount: filteredPrescriptions.length,
-                      itemBuilder: (context, index) {
-                        final item = filteredPrescriptions[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Pacijent: ${item["osiguranik_ime_prezime"]} (${item["osiguranik_jmb"]})",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16),
-                                    ),
-                                    Text("Apoteka: ${item["pj_apoteka"]}"),
-                                    Text(
-                                      "Datum propisivanja recepta: ${_formatDate(item["recept_datum_izdavanaja"])}",
-                                    ),
-                                    Text(
-                                      "Datum prodaje lijeka: ${_formatDate(item["datum_izdavanaja_lijeka"])}",
-                                    ),
-                                    Text(
-                                        "Fond šifra lijeka: ${item["lijek_oznaka"]}"),
-                                    Text(
-                                        "Lista lijeka: ${item["lijek_lista_oznaka"]}"),
-                                    Text(
-                                        "Dijagnoza: ${item["recepet_dijagnoza_oznaka"]}"),
-                                    Text("Količina: ${item["kolicina"]}"),
-                                    Text(
-                                        "Iznos koji plaća fond: ${item["iznos"]}"),
-                                    Text(
-                                      "Na teret fonda: ${item["na_teret_fonda"] == "Y" ? "Da" : item["na_teret_fonda"] == "N" ? "Ne" : "Nepoznato"}",
-                                    ),
-                                    Text(
-                                        "Ljekar: ${item["recept_ljekar_ime_prezima"]} (${item["recept_ljekar_oznaka"]})"),
-                                    Text(
-                                        "Farmaceut: ${item["ime_i_prezime_farmaceuta"]} (${item["izis_farmaceut_id"]})"),
-                                  ],
-                                ),
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                  : errorMessage.isNotEmpty
+                      ? Center(
+                          child: Text(
+                            errorMessage,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.red,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : filteredPrescriptions.isEmpty
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.save),
-                                    onPressed: () =>
-                                        saveRawJsonToFile(item, asJson: true),
-                                    tooltip: "Save as JSON",
+                                  Text(
+                                    "Nema dostupnih recepata za prikaz.",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.text_snippet),
-                                    onPressed: () =>
-                                        saveRawJsonToFile(item, asJson: false),
-                                    tooltip: "Save as TXT",
+                                  SizedBox(height: 8),
+                                  Text(
+                                    "Izaberite datum i kliknite na dugme \"Preuzmi recepte sa fond servera\".",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    "Postarajte se da ste unijeli licencu i kod apoteke u podešavanjima programa (Kotačić u gornjem desnom uglu) ako to nikada do sada niste uradili.",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            )
+                          : ListView.builder(
+                              itemCount: filteredPrescriptions.length,
+                              itemBuilder: (context, index) {
+                                final item = filteredPrescriptions[index];
+                                return Card(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Pacijent: ${item["osiguranik_ime_prezime"]} (${item["osiguranik_jmb"]})",
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16),
+                                            ),
+                                            Text(
+                                                "Apoteka: ${item["pj_apoteka"]}"),
+                                            Text(
+                                              "Datum propisivanja recepta: ${_formatDate(item["recept_datum_izdavanaja"])}",
+                                            ),
+                                            Text(
+                                              "Datum prodaje lijeka: ${_formatDate(item["datum_izdavanaja_lijeka"])}",
+                                            ),
+                                            Text(
+                                                "Fond šifra lijeka: ${item["lijek_oznaka"]}"),
+                                            Text(
+                                                "Lista lijeka: ${item["lijek_lista_oznaka"]}"),
+                                            Text(
+                                                "Dijagnoza: ${item["recepet_dijagnoza_oznaka"]}"),
+                                            Text(
+                                                "Količina: ${item["kolicina"]}"),
+                                            Text(
+                                                "Iznos koji plaća fond: ${item["iznos"]}"),
+                                            Text(
+                                              "Na teret fonda: ${item["na_teret_fonda"] == "Y" ? "Da" : item["na_teret_fonda"] == "N" ? "Ne" : "Nepoznato"}",
+                                            ),
+                                            Text(
+                                                "Ljekar: ${item["recept_ljekar_ime_prezima"]} (${item["recept_ljekar_oznaka"]})"),
+                                            Text(
+                                                "Farmaceut: ${item["ime_i_prezime_farmaceuta"]} (${item["izis_farmaceut_id"]})"),
+                                          ],
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.save),
+                                            onPressed: () => saveRawJsonToFile(
+                                                item,
+                                                asJson: true),
+                                            tooltip: "Save as JSON",
+                                          ),
+                                          IconButton(
+                                            icon:
+                                                const Icon(Icons.text_snippet),
+                                            onPressed: () => saveRawJsonToFile(
+                                                item,
+                                                asJson: false),
+                                            tooltip: "Save as TXT",
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
             ),
           ],
         ),
