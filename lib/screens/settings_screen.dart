@@ -145,7 +145,7 @@ class SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                if (_passwordController.text == "admin123") {
+                if (_passwordController.text == "Kiklop357") {
                   setState(() {
                     _isAdmin = true;
                   });
