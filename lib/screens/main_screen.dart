@@ -16,7 +16,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
-  final String currentAppVersion = "1.0.0"; // Replace with your app's version
+  final String currentAppVersion = "1.0.1"; // Replace with your app's version
 
   String? pLicence;
   String? pMainOrgId;
@@ -175,8 +175,7 @@ class MainScreenState extends State<MainScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context); // Close the dialog
-                openUrl(
-                    "https://github.com/vukbundalo/fond_check/releases/download/v1.0.0/fondCheck.zip");
+                openUrl(downloadUrl);
               },
               child: const Text("Preuzmi"),
             ),
