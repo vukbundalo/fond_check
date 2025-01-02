@@ -139,6 +139,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       _licenceController.text = "";
       _orgIdController.text = "";
     });
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Licenca i kod apoteke su očišćeni!")),
     );
@@ -228,7 +229,10 @@ class SettingsScreenState extends State<SettingsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                   ),
-                  child: const Text("Obriši podatke"),
+                  child: const Text(
+                    "Obriši podatke",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
