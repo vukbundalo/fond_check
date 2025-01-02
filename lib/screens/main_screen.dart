@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'settings_screen.dart';
+import 'package:intl/intl.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -87,6 +90,61 @@ class MainScreenState extends State<MainScreen> {
     }
   }
 
+  Future<void> saveRawJsonToFile(dynamic rawJson,
+      {required bool asJson}) async {
+    try {
+      // Format the JSON data
+      String fileExtension = asJson ? "json" : "txt";
+      String data = asJson
+          ? const JsonEncoder.withIndent('  ').convert(rawJson) // Pretty JSON
+          : rawJson.entries
+              .map((entry) => '"${entry.key}": ${entry.value}')
+              .join('\n'); // Formatted TXT
+
+      // Open file picker for the user to choose the save location
+      String? filePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Prescription Data',
+        fileName:
+            'prescription_${rawJson["osiguranik_ime_prezime"]}_${selectedDate.day}.${selectedDate.month}.${selectedDate.year}.$fileExtension',
+        type: FileType.custom,
+        allowedExtensions: [fileExtension],
+      );
+
+      if (filePath != null) {
+        final file = File(filePath);
+        await file.writeAsString(data);
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    "Raw data saved successfully as .$fileExtension file!")),
+          );
+        }
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving data: $e")),
+        );
+      }
+    }
+  }
+
+  // Helper method to format the date:
+  String _formatDate(String? date) {
+    if (date == null || date.isEmpty)
+      return "Nepoznato"; // Handle null or empty dates
+    try {
+      final parsedDate = DateTime.parse(date); // Parse the string to DateTime
+      return DateFormat('dd.MM.yyyy').format(parsedDate); // Format the DateTime
+    } catch (e) {
+      return "Nepoznato"; // Handle invalid date formats
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredPrescriptions = prescriptions
@@ -103,19 +161,57 @@ class MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Recepti izdati u fond"),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Colors.blue, Colors.lightBlueAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Text(
+                "FondCheck1.0",
+                style: TextStyle(
+                  fontSize: 24, // Larger font size for the title
+                  fontWeight: FontWeight.bold, // Bold text for emphasis
+                  fontFamily: 'Serif', // Elegant font
+                  color: Colors.white, // Gradient applies here
+                  letterSpacing: 1.5, // Slight letter spacing for premium feel
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(
+                height: 4), // Small spacing between title and subtitle
+            const Text(
+              "Pregled elektronskih recepata koji su izdati u fond",
+              style: TextStyle(
+                fontSize: 14, // Smaller font size for subtitle
+                fontWeight: FontWeight.w400, // Normal font weight
+                color: Colors.white, // White color for subtitle
+                letterSpacing: 1.0, // Slight letter spacing for readability
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
+        centerTitle: true, // Center the title and subtitle
+        backgroundColor:
+            Colors.blue.shade900, // Dark blue background for pharmacy theme
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(
+              Icons.settings,
+              color: Colors.white,
+            ),
             onPressed: () async {
               // Navigate to the Settings Page
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
-              if (mounted) {
-                loadSettings(); // Reload settings after returning
-              }
             },
           ),
         ],
@@ -123,6 +219,7 @@ class MainScreenState extends State<MainScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Show the selected date
             Text(
@@ -155,45 +252,108 @@ class MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.builder(
-                itemCount: filteredPrescriptions.length,
-                itemBuilder: (context, index) {
-                  final item = filteredPrescriptions[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+              child: filteredPrescriptions.isEmpty
+                  ? const Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Pacijent: ${item["osiguranik_ime_prezime"]} (${item["osiguranik_jmb"]})",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
+                            "Nema dostupnih recepata za prikaz.",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
+                          SizedBox(height: 8),
                           Text(
-                              "Apoteka u kojoj je recept izdat: ${item["pj_apoteka"]}"),
+                            "Izaberite datum i kliknite na dugme \"Preuzmi recepte sa fond servera\".",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 8),
                           Text(
-                              "Datum propisivanja recepta: ${item["recept_datum_izdavanaja"]}"),
-                          Text("Fond šifra lijeka: ${item["lijek_oznaka"]}"),
-                          Text(
-                              "Fond lista lijeka: ${item["lijek_lista_oznaka"]}"),
-                          Text(
-                              "Dijagnoza: ${item["recepet_dijagnoza_oznaka"]}"),
-                          Text("Količina: ${item["kolicina"]}"),
-                          Text("Iznos: ${item["iznos"]}"),
-                          Text(
-                              "Da li je na teret fonda?: ${item["na_teret_fonda"]}"),
-                          Text(
-                              "Ljekar koji je propisao recept: ${item["recept_ljekar_ime_prezima"]}"),
-                          Text(
-                              "Farmaceut: ${item["ime_i_prezime_farmaceuta"]} (${item["izis_farmaceut_id"]})"),
+                            "Postarajte se da ste unijeli licencu i kod apoteke u podešavanjima programa (Kotačić u gornjem desnom uglu) ako to nikada do sada niste uradili.",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredPrescriptions.length,
+                      itemBuilder: (context, index) {
+                        final item = filteredPrescriptions[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Pacijent: ${item["osiguranik_ime_prezime"]} (${item["osiguranik_jmb"]})",
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                    Text("Apoteka: ${item["pj_apoteka"]}"),
+                                    Text(
+                                      "Datum propisivanja recepta: ${_formatDate(item["recept_datum_izdavanaja"])}",
+                                    ),
+                                    Text(
+                                      "Datum prodaje lijeka: ${_formatDate(item["datum_izdavanaja_lijeka"])}",
+                                    ),
+                                    Text(
+                                        "Fond šifra lijeka: ${item["lijek_oznaka"]}"),
+                                    Text(
+                                        "Lista lijeka: ${item["lijek_lista_oznaka"]}"),
+                                    Text(
+                                        "Dijagnoza: ${item["recepet_dijagnoza_oznaka"]}"),
+                                    Text("Količina: ${item["kolicina"]}"),
+                                    Text(
+                                        "Iznos koji plaća fond: ${item["iznos"]}"),
+                                    Text(
+                                      "Na teret fonda: ${item["na_teret_fonda"] == "Y" ? "Da" : item["na_teret_fonda"] == "N" ? "Ne" : "Nepoznato"}",
+                                    ),
+                                    Text(
+                                        "Ljekar: ${item["recept_ljekar_ime_prezima"]} (${item["recept_ljekar_oznaka"]})"),
+                                    Text(
+                                        "Farmaceut: ${item["ime_i_prezime_farmaceuta"]} (${item["izis_farmaceut_id"]})"),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.save),
+                                    onPressed: () =>
+                                        saveRawJsonToFile(item, asJson: true),
+                                    tooltip: "Save as JSON",
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.text_snippet),
+                                    onPressed: () =>
+                                        saveRawJsonToFile(item, asJson: false),
+                                    tooltip: "Save as TXT",
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
