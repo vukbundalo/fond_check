@@ -40,7 +40,9 @@ class MainScreenState extends State<MainScreen> {
         pMainOrgId!.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Molimo prvo podesite licencu i kod u podešavanjima!")),
+          const SnackBar(
+              content:
+                  Text("Molimo prvo podesite licencu i kod u podešavanjima!")),
         );
       }
       return;
@@ -101,7 +103,7 @@ class MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Prescriptions"),
+        title: const Text("Recepti izdati u fond"),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -124,7 +126,7 @@ class MainScreenState extends State<MainScreen> {
           children: [
             // Show the selected date
             Text(
-              "Selected Date: ${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
+              "Recepti za datum: ${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -132,18 +134,19 @@ class MainScreenState extends State<MainScreen> {
               children: [
                 ElevatedButton(
                   onPressed: selectDate,
-                  child: const Text("Change Date"),
+                  child: const Text("Promjeni datum"),
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton(
                   onPressed: fetchPrescriptions,
-                  child: const Text("Fetch Data"),
+                  child: const Text("Preuzmi recepte sa fond servera"),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             TextField(
-              decoration: const InputDecoration(labelText: "Search"),
+              decoration: const InputDecoration(
+                  labelText: "Pretraži po imenu i prezimenu pacijenta"),
               onChanged: (value) {
                 setState(() {
                   searchQuery = value;
