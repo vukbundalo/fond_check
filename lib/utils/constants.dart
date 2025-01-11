@@ -1,5 +1,7 @@
+const String currentAppVersion = "1.0.0"; // Replace with your app's version
+
 // List of pharmacies
-const List<Map<String, String>> kPharmacies = [
+const List<Map<String, String>> pharmacies = [
   {
     "name": "Apoteka Kozara",
     "license": "83657FD3-4680-4532-A4D5-6F82C46C253A",

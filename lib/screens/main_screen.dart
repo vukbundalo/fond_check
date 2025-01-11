@@ -15,9 +15,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
-  final String currentAppVersion = "1.0.0"; // Replace with your app's version
-  final List<Map<String, String>> pharmacies = kPharmacies;
-
   String? pLicence;
   String? pMainOrgId;
   DateTime selectedDate = DateTime.now();

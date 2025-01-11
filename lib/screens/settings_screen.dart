@@ -16,8 +16,6 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   bool _isAdmin = false; // Track admin authentication
 
-  // List of pharmacies
-  final List<Map<String, String>> pharmacies = kPharmacies;
   @override
   void initState() {
     super.initState();
