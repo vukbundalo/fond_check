@@ -79,12 +79,11 @@ class MainScreenState extends State<MainScreen> {
   }
 
   void showUpdateDialog(String latestVersion, String downloadUrl) {
-    if (!mounted) return; // Ensure the widget is mounted before using context
+    if (!mounted) return;
 
     showDialog(
-      context: context, // Use the current context directly here
+      context: context,
       builder: (BuildContext dialogContext) {
-        // The dialog's context is captured here
         return AlertDialog(
           title: const Text("Nova verzija dostupna"),
           content: Text(
@@ -94,7 +93,7 @@ class MainScreenState extends State<MainScreen> {
             TextButton(
               onPressed: () {
                 if (Navigator.of(dialogContext).canPop()) {
-                  Navigator.pop(dialogContext); // Close the dialog
+                  Navigator.pop(dialogContext);
                 }
               },
               child: const Text("Kasnije"),
@@ -102,14 +101,13 @@ class MainScreenState extends State<MainScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (Navigator.of(dialogContext).canPop()) {
-                  Navigator.pop(dialogContext); // Close the dialog
+                  Navigator.pop(dialogContext);
                 }
                 final Uri uri = Uri.parse(downloadUrl);
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 } else {
                   if (mounted) {
-                    // Re-check if the widget is mounted
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                           content: Text("Ne mogu otvoriti URL: $downloadUrl")),
@@ -187,6 +185,8 @@ class MainScreenState extends State<MainScreen> {
       setState(() {
         selectedDate = pickedDate;
       });
+      // Automatically fetch prescriptions after changing the date
+      fetchPrescriptions();
     }
   }
 
@@ -213,18 +213,86 @@ class MainScreenState extends State<MainScreen> {
       return nameMatch && codeMatch && iheMatch && pharmacyMatch;
     }).toList();
 
+    final double ukupanIznosRecepta = filteredPrescriptions
+        .where((item) => item["na_teret_fonda"] == "Y")
+        .fold<double>(0.0, (sum, item) {
+      final double iznos = double.tryParse(item["iznos"].toString()) ?? 0.0;
+      return sum + iznos + 1.43;
+    });
+
+    final int brojUslugaIzdavanja = filteredPrescriptions
+        .where((item) => item["na_teret_fonda"] == "Y")
+        .length;
+
+    const int brojUslugaOtapanja = 0;
+
     return Scaffold(
+      // appBar: AppBar(
+      //   actions: [
+      //     IconButton(
+      //       icon: const Icon(Icons.settings),
+      //       onPressed: () async {
+      //         await Navigator.push(
+      //           context,
+      //           MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      //         );
+      //         await loadSettings();
+      //       },
+      //     ),
+      //   ],
+      // ),
       appBar: AppBar(
-        title: const Text("FondCheck1.0"),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Colors.blue, Colors.lightBlueAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Text(
+                "FondCheck",
+                style: TextStyle(
+                  fontSize: 24, // Larger font size for the title
+                  fontWeight: FontWeight.bold, // Bold text for emphasis
+                  fontFamily: 'Serif', // Elegant font
+                  color: Colors.white, // Gradient applies here
+                  letterSpacing: 1.5, // Slight letter spacing for premium feel
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(
+                height: 4), // Small spacing between title and subtitle
+            const Text(
+              "Pregled elektronskih recepata koji su izdati u fond",
+              style: TextStyle(
+                fontSize: 14, // Smaller font size for subtitle
+                fontWeight: FontWeight.w400, // Normal font weight
+                color: Colors.white, // White color for subtitle
+                letterSpacing: 1.0, // Slight letter spacing for readability
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        centerTitle: true, // Center the title and subtitle
+        backgroundColor:
+            Colors.blue.shade900, // Dark blue background for pharmacy theme
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () async {
+              // Navigate to the Settings Page
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
-              await loadSettings(); // Reload settings and reset dropdown
+              // Reload settings after returning
+              if (mounted) {
+                await loadSettings();
+              }
             },
           ),
         ],
@@ -234,71 +302,100 @@ class MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Recepti za datum: ${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: 16),
+            Card(
+              margin: const EdgeInsets.only(bottom: 16.0),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Text(
+                      "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    prescriptions.isNotEmpty && pharmacyList.length == 2
+                        ? // Only one pharmacy (plus "Sve apoteke")
+                        Text(
+                            pharmacyList.last,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          )
+                        : DropdownButton<String>(
+                            value: selectedPharmacy,
+                            items: pharmacyList
+                                .map((pharmacy) => DropdownMenuItem(
+                                      value: pharmacy,
+                                      child: Text(pharmacy),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedPharmacy = value;
+                              });
+                            },
+                          ),
+                    Text(
+                      "Fond plaća: ${ukupanIznosRecepta.toStringAsFixed(2)} KM",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Izdavanja: $brojUslugaIzdavanja",
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Otapanja: $brojUslugaOtapanja",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
                 ),
-                DropdownButton<String>(
-                  value: selectedPharmacy,
-                  items: pharmacyList
-                      .map((pharmacy) => DropdownMenuItem(
-                            value: pharmacy,
-                            child: Text(pharmacy),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedPharmacy = value;
-                    });
-                  },
-                ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                ElevatedButton(
-                  onPressed: selectDate,
-                  child: const Text("Promjeni datum"),
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                        labelText: "Ime ili prezime pacijenta"),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                      });
+                    },
+                  ),
                 ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: fetchPrescriptions,
-                  child: const Text("Preuzmi recepte sa fond servera"),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: TextField(
+                    decoration:
+                        const InputDecoration(labelText: "Fond šifra lijeka"),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQueryCode = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: TextField(
+                    decoration:
+                        const InputDecoration(labelText: "Broj recepta"),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQueryRecept = value;
+                      });
+                    },
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration:
-                  const InputDecoration(labelText: "Ime ili prezime pacijenta"),
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(labelText: "Fond šifra lijeka"),
-              onChanged: (value) {
-                setState(() {
-                  searchQueryCode = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(labelText: "Broj recepta"),
-              onChanged: (value) {
-                setState(() {
-                  searchQueryRecept = value;
-                });
-              },
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -329,6 +426,22 @@ class MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FloatingActionButton(
+            onPressed: fetchPrescriptions,
+            tooltip: "Preuzmi recepte",
+            child: const Icon(Icons.download),
+          ),
+          FloatingActionButton(
+            onPressed: selectDate,
+            tooltip: "Promjeni datum",
+            child: const Icon(Icons.calendar_today),
+          ),
+        ],
       ),
     );
   }
