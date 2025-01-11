@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'settings_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -189,49 +187,6 @@ class MainScreenState extends State<MainScreen> {
       setState(() {
         selectedDate = pickedDate;
       });
-    }
-  }
-
-  Future<void> saveRawJsonToFile(dynamic rawJson,
-      {required bool asJson}) async {
-    try {
-      // Format the JSON data
-      String fileExtension = asJson ? "json" : "txt";
-      String data = asJson
-          ? const JsonEncoder.withIndent('  ').convert(rawJson) // Pretty JSON
-          : rawJson.entries
-              .map((entry) => '"${entry.key}": ${entry.value}')
-              .join('\n'); // Formatted TXT
-
-      // Open file picker for the user to choose the save location
-      String? filePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Sačuvaj podatke o receptu',
-        fileName:
-            'recept_${rawJson["osiguranik_ime_prezime"]}_${selectedDate.day}.${selectedDate.month}.${selectedDate.year}.$fileExtension',
-        type: FileType.custom,
-        allowedExtensions: [fileExtension],
-      );
-
-      if (filePath != null) {
-        final file = File(filePath);
-        await file.writeAsString(data);
-
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text("Podaci su uspiješno sačuvani .$fileExtension file!")),
-          );
-        }
-      }
-    } catch (e) {
-      // Show error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving data: $e")),
-        );
-      }
     }
   }
 
