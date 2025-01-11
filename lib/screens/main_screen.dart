@@ -5,8 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'settings_screen.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/constants.dart';
+import '../widgets/prescription_card.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,7 +17,8 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
-  final String currentAppVersion = "1.0.1"; // Replace with your app's version
+  final String currentAppVersion = "1.0.0"; // Replace with your app's version
+  final List<Map<String, String>> pharmacies = kPharmacies;
 
   String? pLicence;
   String? pMainOrgId;
@@ -27,78 +29,6 @@ class MainScreenState extends State<MainScreen> {
   String errorMessage = ""; // Track error message
   String searchQueryCode = ""; // For searching by "Fond šifra lijeka"
   String searchQueryRecept = ""; // For searching by "broj recepta"
-
-  // Add the pharmacy list to map licenses to their names
-  final List<Map<String, String>> pharmacies = [
-    {
-      "name": "Apoteka Kozara",
-      "license": "83657FD3-4680-4532-A4D5-6F82C46C253A"
-    },
-    {
-      "name": "Apoteka Han Pijesak",
-      "license": "D42600BB-4642-4CF4-D9F5-23232BB726F6"
-    },
-    {
-      "name": "Apoteka Državna Trebinje",
-      "license": "933E3B08-2271-48C5-FE03-8D2EE1EBF102"
-    },
-    {
-      "name": "Apoteka Biljana",
-      "license": "ABD0AC30-D343-41E6-8E98-2550CB5A3FAC"
-    },
-    {
-      "name": "Apoteka Tilija Mrkonjić Grad",
-      "license": "EA288021-3FFB-43F4-449E-4F4C8DC5F0EA"
-    },
-    {
-      "name": "Apoteka Državna Modriča",
-      "license": "4C97E425-1D46-42A9-4132-086620532C5B"
-    },
-    {
-      "name": "Apoteka Stjepanović Bijeljina",
-      "license": "E4793C23-6867-4490-C4FA-FC37AE509A42"
-    },
-    {
-      "name": "Apoteka Higija Šipovo",
-      "license": "58019919-E5DC-4406-48B7-D991B59792D3"
-    },
-    {
-      "name": "Apoteka Drenovik Nevesinje",
-      "license": "E933B473-460B-46AC-D6E6-3E6DF2A11878"
-    },
-    {
-      "name": "Apoteka Petković Šamac",
-      "license": "62867DC0-D616-42ED-8A9B-BB03629B504F"
-    },
-    {
-      "name": "Apoteka Vanja Šamac-Slatina",
-      "license": "F14A353F-ED0A-4D52-F9FD-E6139E3DC353"
-    },
-    {
-      "name": "Apoteka Galen Trebinje",
-      "license": "7E40E43B-D27C-4EF5-6753-59840484CDA0"
-    },
-    {
-      "name": "Apoteka S Farm Bijeljina",
-      "license": "2FD4570C-C1A5-44CD-6524-EF6BA363EBE4"
-    },
-    {
-      "name": "Apoteka Povjerenje Lopare",
-      "license": "1503182C-71A0-4A8B-9DD8-04169B22980C"
-    },
-    {
-      "name": "Apoteka Eskulap Farm",
-      "license": "756E7EFE-C20A-4AAE-DAB4-6E6D25300261"
-    },
-    {
-      "name": "Apoteka E-Pharm Lukavica",
-      "license": "5A5B3399-9A9C-415D-BP9C-24174388D954"
-    },
-    {
-      "name": "Apoteka Lijek Trebinje",
-      "license": "031C2300-68B9-49AE-9C35-1C1A96854A08"
-    },
-  ];
 
   @override
   void initState() {
@@ -305,19 +235,6 @@ class MainScreenState extends State<MainScreen> {
     }
   }
 
-  // Helper method to format the date:
-  String _formatDate(String? date) {
-    if (date == null || date.isEmpty) {
-      return "Nepoznato"; // Handle null or empty dates
-    }
-    try {
-      final parsedDate = DateTime.parse(date); // Parse the string to DateTime
-      return DateFormat('dd.MM.yyyy').format(parsedDate); // Format the DateTime
-    } catch (e) {
-      return "Nepoznato"; // Handle invalid date formats
-    }
-  }
-
   // Helper function to get pharmacy name by license
   String? getPharmacyNameByLicense(String? license) {
     if (license == null || license.isEmpty) return null;
@@ -520,78 +437,8 @@ class MainScreenState extends State<MainScreen> {
                               itemCount: filteredPrescriptions.length,
                               itemBuilder: (context, index) {
                                 final item = filteredPrescriptions[index];
-                                return Card(
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  color: Colors.lightBlue.shade50,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "Pacijent: ${item["osiguranik_ime_prezime"]} (${item["osiguranik_jmb"]})",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Colors.blueGrey,
-                                              ),
-                                            ),
-                                            Text(
-                                                "Apoteka: ${item["pj_apoteka"]}"),
-                                            Text(
-                                                "Datum propisivanja recepta: ${_formatDate(item["recept_datum_izdavanaja"])}"),
-                                            Text(
-                                                "Datum prodaje lijeka: ${_formatDate(item["datum_izdavanaja_lijeka"])}"),
-                                            Text(
-                                                "Fond šifra lijeka: ${item["lijek_oznaka"]}"),
-                                            Text(
-                                                "Lista lijeka: ${item["lijek_lista_oznaka"]}"),
-                                            Text(
-                                                "Dijagnoza: ${item["recepet_dijagnoza_oznaka"]}"),
-                                            Text(
-                                                "Količina: ${item["kolicina"]}"),
-                                            Text(
-                                                "Iznos koji plaća fond: ${item["iznos"]}"),
-                                            Text(
-                                              "Na teret fonda: ${item["na_teret_fonda"] == "Y" ? "Da" : item["na_teret_fonda"] == "N" ? "Ne" : "Nepoznato"}",
-                                            ),
-                                            Text(
-                                                "Ljekar: ${item["recept_ljekar_ime_prezima"]} (${item["recept_ljekar_oznaka"]})"),
-                                            Text(
-                                                "Farmaceut: ${item["ime_i_prezime_farmaceuta"]} (${item["izis_farmaceut_id"]})"),
-                                          ],
-                                        ),
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.save),
-                                            onPressed: () => saveRawJsonToFile(
-                                                item,
-                                                asJson: true),
-                                            tooltip: "Save as JSON",
-                                          ),
-                                          IconButton(
-                                            icon:
-                                                const Icon(Icons.text_snippet),
-                                            onPressed: () => saveRawJsonToFile(
-                                                item,
-                                                asJson: false),
-                                            tooltip: "Save as TXT",
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                );
+                                return PrescriptionCard(
+                                    item: item, selectedDate: selectedDate);
                               },
                             ),
             ),
