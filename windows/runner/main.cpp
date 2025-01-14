@@ -24,12 +24,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
+  // Get the work area dimensions (excluding the taskbar)
+  RECT workAreaRect;
+  SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRect, 0);
+  int screenWidth = workAreaRect.right - workAreaRect.left;
+  int screenHeight = workAreaRect.bottom - workAreaRect.top;
+
   FlutterWindow window(project);
-  Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
+  Win32Window::Point origin(workAreaRect.left, workAreaRect.top); // Top-left corner of the work area
+  Win32Window::Size size(screenWidth, screenHeight);              // Full work area size
+
   if (!window.Create(L"fond_check", origin, size)) {
     return EXIT_FAILURE;
   }
+
+  // Configure the window style
+  HWND hwnd = window.GetHandle();
+  LONG style = GetWindowLong(hwnd, GWL_STYLE);
+  style &= ~WS_SIZEBOX;         // Disable resizing
+  style |= WS_OVERLAPPEDWINDOW; // Keep minimize, maximize, and close buttons
+  SetWindowLong(hwnd, GWL_STYLE, style);
+
+  // Center the window
+  SetWindowPos(hwnd, HWND_TOP, workAreaRect.left, workAreaRect.top, screenWidth, screenHeight, SWP_FRAMECHANGED);
+
   window.SetQuitOnClose(true);
 
   ::MSG msg;

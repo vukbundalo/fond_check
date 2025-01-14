@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/constants.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Administrator Login"),
+          title: const Text("Prijava Administratora"),
           content: TextField(
             controller: _passwordController,
             obscureText: true,
@@ -71,7 +72,7 @@ class SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                if (_passwordController.text == "Kiklop357") {
+                if (_passwordController.text == "1234abcD") {
                   setState(() {
                     _isAdmin = true;
                   });
@@ -99,6 +100,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _licenceController,
@@ -134,26 +136,69 @@ class SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ElevatedButton(
                   onPressed: saveSettings,
-                  child: const Text("Sačuvaj"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Colors.blue.shade900, // Button background color
+                  ),
+                  child: const Text(
+                    "Sačuvaj",
+                    style: TextStyle(color: Colors.white), // Text color
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: clearSettings,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor:
+                        Colors.red, // Red background for the delete button
                   ),
                   child: const Text(
                     "Obriši podatke",
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.white), // Text color
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 32),
             if (!_isAdmin)
-              ElevatedButton(
-                onPressed: authenticateAdmin,
-                child: const Text("Prijavite se kao administrator"),
+              Center(
+                child: ElevatedButton(
+                  onPressed: authenticateAdmin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Colors.blue.shade900, // Button background color
+                  ),
+                  child: const Text(
+                    "Prijavite se kao administrator",
+                    style: TextStyle(color: Colors.white), // Text color
+                  ),
+                ),
               ),
+            const Spacer(),
+            const Divider(),
+            Center(
+              child: InkWell(
+                onTap: () async {
+                  const url =
+                      'https://github.com/vukbundalo'; // Replace with your GitHub link
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url),
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    throw 'Could not launch $url';
+                  }
+                },
+                child: Text(
+                  'Developed by Vuk Bundalo',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.blue.shade900, // Blue for link appearance
+                    decoration:
+                        TextDecoration.none, // No underline for emphasis
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

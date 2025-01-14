@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -23,6 +24,11 @@ class MainScreenState extends State<MainScreen> {
   String errorMessage = "";
   String searchQueryCode = "";
   String searchQueryRecept = "";
+  int selectedFilter = 0;
+  int brojRecepata = 0;
+  int brojFondovskihRecepata = 0;
+  int brojPrivatnihRecepata = 0;
+  String searchJMB = ""; // Variable to store JMB search query
 
   String? selectedPharmacy = "Sve apoteke"; // Default option
   List<String> pharmacyList = ["Sve apoteke"]; // Includes "Sve apoteke"
@@ -142,6 +148,12 @@ class MainScreenState extends State<MainScreen> {
     setState(() {
       isLoading = true;
       errorMessage = "";
+      pharmacyList = ["Sve apoteke"]; // Clear the dropdown list
+      selectedPharmacy = "Sve apoteke"; // Reset the selected value
+      prescriptions = []; // Clear the prescriptions list
+      brojRecepata = 0; // Reset total prescriptions
+      brojFondovskihRecepata = 0; // Reset fondovski count
+      brojPrivatnihRecepata = 0; // Reset privatni count
     });
 
     final date =
@@ -160,6 +172,13 @@ class MainScreenState extends State<MainScreen> {
                   .map((item) => item["pj_apoteka"] as String)
                   .toSet()
                   .toList();
+          brojRecepata = prescriptions.length;
+          brojFondovskihRecepata = prescriptions
+              .where((item) => item["na_teret_fonda"] == "Y")
+              .length;
+          brojPrivatnihRecepata = prescriptions
+              .where((item) => item["na_teret_fonda"] == "N")
+              .length;
           isLoading = false;
         });
       } else {
@@ -168,7 +187,8 @@ class MainScreenState extends State<MainScreen> {
     } catch (e) {
       setState(() {
         isLoading = false;
-        errorMessage = "Konekcija sa serverom nije uspijela.";
+        errorMessage =
+            "Konekcija sa serverom nije uspijela. \n Provjerite internet konekciju i pokušajte ponovo. \n Ukoliko imate internet konekciju a ne možete preuzeti recepte pošaljite mail na\n prokontik.apoteke@eastcode.biz.";
       });
     }
   }
@@ -179,8 +199,26 @@ class MainScreenState extends State<MainScreen> {
       initialDate: selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.blue.shade900, // Header background color
+            colorScheme: ColorScheme.light(
+              primary:
+                  Colors.blue.shade900, // Header text and selected date color
+              onPrimary: Colors.white, // Text color on the header
+              onSurface: Colors.blue.shade900, // Text color for other elements
+            ),
+            dialogBackgroundColor:
+                Colors.white, // Background color of the dialog
+          ),
+          child: child!,
+        );
+      },
     );
+
     if (!mounted) return;
+
     if (pickedDate != null && pickedDate != selectedDate) {
       setState(() {
         selectedDate = pickedDate;
@@ -210,37 +248,32 @@ class MainScreenState extends State<MainScreen> {
           : false;
       final pharmacyMatch = selectedPharmacy == "Sve apoteke" ||
           item["pj_apoteka"] == selectedPharmacy;
-      return nameMatch && codeMatch && iheMatch && pharmacyMatch;
+      final fundMatch = selectedFilter == 0
+          ? true // Include all prescriptions
+          : selectedFilter == 1
+              ? item["na_teret_fonda"] == "Y" // Only "Y"
+              : item["na_teret_fonda"] == "N"; // Only "N"
+      final jmbMatch = item["osiguranik_jmb"]
+          .toString()
+          .contains(searchJMB); // Match osiguranik_jmb
+
+      return nameMatch &&
+          codeMatch &&
+          iheMatch &&
+          pharmacyMatch &&
+          fundMatch &&
+          jmbMatch;
     }).toList();
 
-    final double ukupanIznosRecepta = filteredPrescriptions
-        .where((item) => item["na_teret_fonda"] == "Y")
-        .fold<double>(0.0, (sum, item) {
-      final double iznos = double.tryParse(item["iznos"].toString()) ?? 0.0;
-      return sum + iznos + 1.43;
-    });
+    final int brojRecepata = filteredPrescriptions.length;
 
-    final int brojUslugaIzdavanja = filteredPrescriptions
+    final int brojFondovskihRecepata = filteredPrescriptions
         .where((item) => item["na_teret_fonda"] == "Y")
         .length;
-
-    const int brojUslugaOtapanja = 0;
-
+    final int brojPrivatnihRecepata = filteredPrescriptions
+        .where((item) => item["na_teret_fonda"] == "N")
+        .length;
     return Scaffold(
-      // appBar: AppBar(
-      //   actions: [
-      //     IconButton(
-      //       icon: const Icon(Icons.settings),
-      //       onPressed: () async {
-      //         await Navigator.push(
-      //           context,
-      //           MaterialPageRoute(builder: (context) => const SettingsScreen()),
-      //         );
-      //         await loadSettings();
-      //       },
-      //     ),
-      //   ],
-      // ),
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -311,7 +344,8 @@ class MainScreenState extends State<MainScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Text(
-                      "${selectedDate.day}.${selectedDate.month}.${selectedDate.year}",
+                      DateFormat('dd.MM.yyyy')
+                          .format(selectedDate), // Formatting the date
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -335,9 +369,14 @@ class MainScreenState extends State<MainScreen> {
                                 selectedPharmacy = value;
                               });
                             },
+                            focusColor: Colors.transparent,
+                            // dropdownColor: Colors.transparent,
+                            // iconEnabledColor: Colors.transparent,
+                            // iconDisabledColor:
+                            //     Colors.transparent, // Disable focus color
                           ),
                     Text(
-                      "Fond plaća: ${ukupanIznosRecepta.toStringAsFixed(2)} KM",
+                      "Broj recepata: $brojRecepata",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -345,13 +384,13 @@ class MainScreenState extends State<MainScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Izdavanja: $brojUslugaIzdavanja",
+                      "Fondovski: $brojFondovskihRecepata",
                       style: const TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Otapanja: $brojUslugaOtapanja",
-                      style: TextStyle(fontSize: 16),
+                    Text(
+                      "Privatni: $brojPrivatnihRecepata",
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ],
                 ),
@@ -361,9 +400,43 @@ class MainScreenState extends State<MainScreen> {
             Row(
               children: [
                 Expanded(
+                  child: ToggleButtons(
+                    isSelected: [
+                      selectedFilter == 0,
+                      selectedFilter == 1,
+                      selectedFilter == 2
+                    ],
+                    onPressed: (int index) {
+                      setState(() {
+                        selectedFilter =
+                            index; // Update the selected filter state
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderColor: Colors.blue.shade900,
+                    selectedBorderColor: Colors.blue.shade900,
+                    selectedColor: Colors.white,
+                    fillColor: Colors.blue.shade900,
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text("Svi recepti"),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text("Fondovski"),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text("Privatni"),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
                   child: TextField(
-                    decoration: const InputDecoration(
-                        labelText: "Ime ili prezime pacijenta"),
+                    decoration:
+                        const InputDecoration(labelText: "Ime ili prezime"),
                     onChanged: (value) {
                       setState(() {
                         searchQuery = value;
@@ -395,24 +468,44 @@ class MainScreenState extends State<MainScreen> {
                     },
                   ),
                 ),
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(labelText: "JMBG"),
+                    onChanged: (value) {
+                      setState(() {
+                        searchJMB = value;
+                      });
+                    },
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Expanded(
               child: isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(),
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.blue.shade900,
+                      ),
                     )
                   : errorMessage.isNotEmpty
                       ? Center(
                           child: Text(
                             errorMessage,
-                            style: const TextStyle(color: Colors.red),
+                            textAlign:
+                                TextAlign.center, // Center align the text
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 20),
                           ),
                         )
                       : filteredPrescriptions.isEmpty
                           ? const Center(
-                              child: Text("Nema dostupnih recepata."))
+                              child: Text(
+                              "Nema dostupnih recepata za prikaz.\nKliknite na dugme za preuzimanje recepata ili promjenite datum!",
+                              textAlign: TextAlign.center,
+                              style:
+                                  TextStyle(fontSize: 20, color: Colors.grey),
+                            ))
                           : ListView.builder(
                               itemCount: filteredPrescriptions.length,
                               itemBuilder: (context, index) {
@@ -432,14 +525,27 @@ class MainScreenState extends State<MainScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FloatingActionButton(
-            onPressed: fetchPrescriptions,
-            tooltip: "Preuzmi recepte",
-            child: const Icon(Icons.download),
-          ),
-          FloatingActionButton(
             onPressed: selectDate,
             tooltip: "Promjeni datum",
-            child: const Icon(Icons.calendar_today),
+            heroTag: "selectDateButton", // Unique hero tag
+            backgroundColor: Colors.blue.shade900,
+            child: const Icon(
+              Icons.calendar_today,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(
+            width: 20,
+          ),
+          FloatingActionButton(
+            onPressed: fetchPrescriptions,
+            tooltip: "Preuzmi recepte",
+            heroTag: "fetchPrescriptionsButton", // Unique hero tag
+            backgroundColor: Colors.blue.shade900,
+            child: const Icon(
+              Icons.download,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
