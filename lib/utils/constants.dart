@@ -1,4 +1,4 @@
-const String currentAppVersion = "1.0.0"; // Replace with your app's version
+const String currentAppVersion = "1.0.1"; // Replace with your app's version
 
 // List of pharmacies
 const List<Map<String, String>> pharmacies = [
