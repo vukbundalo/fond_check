@@ -397,42 +397,55 @@ class MainScreenState extends State<MainScreen> {
               ),
             ),
             const SizedBox(height: 16),
+ Row(
+  children: [
+    Flexible(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return ToggleButtons(
+            isSelected: [
+              selectedFilter == 0,
+              selectedFilter == 1,
+              selectedFilter == 2
+            ],
+            onPressed: (int index) {
+              setState(() {
+                selectedFilter = index; // Update the selected filter state
+              });
+            },
+            borderRadius: BorderRadius.circular(8.0),
+            borderColor: Colors.blue.shade900,
+            selectedBorderColor: Colors.blue.shade900,
+            selectedColor: Colors.white,
+            fillColor: Colors.blue.shade900,
+            constraints: BoxConstraints.expand(
+              width: (constraints.maxWidth - 4) / 3, // Divide equally for 3 buttons
+              height: 50, // Adjust the height if needed
+            ),
+            children: const [
+              Text(
+                "Svi recepti",
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                "Fondovski",
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                "Privatni",
+                textAlign: TextAlign.center,
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+  ],
+),
+
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: ToggleButtons(
-                    isSelected: [
-                      selectedFilter == 0,
-                      selectedFilter == 1,
-                      selectedFilter == 2
-                    ],
-                    onPressed: (int index) {
-                      setState(() {
-                        selectedFilter =
-                            index; // Update the selected filter state
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderColor: Colors.blue.shade900,
-                    selectedBorderColor: Colors.blue.shade900,
-                    selectedColor: Colors.white,
-                    fillColor: Colors.blue.shade900,
-                    children: const [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text("Svi recepti"),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text("Fondovski"),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text("Privatni"),
-                      ),
-                    ],
-                  ),
-                ),
                 Expanded(
                   child: TextField(
                     decoration:
