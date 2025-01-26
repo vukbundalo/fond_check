@@ -53,19 +53,17 @@ class _PrescriptionCardState extends State<PrescriptionCard> {
         allowedExtensions: [fileExtension],
       );
 
-      if (filePath != null) {
-        final file = File(filePath);
-        await file.writeAsString(data);
+      final file = File(filePath!);
+      await file.writeAsString(data);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    "Podaci su uspiješno sačuvani u $fileExtension fajl!")),
-          );
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  "Podaci su uspiješno sačuvani u $fileExtension fajl!")),
+        );
       }
-    } catch (e) {
+        } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Greška pri čuvanju podataka: $e")),
@@ -106,17 +104,15 @@ class _PrescriptionCardState extends State<PrescriptionCard> {
         allowedExtensions: ['png'],
       );
 
-      if (filePath != null) {
-        final file = File(filePath);
-        await file.writeAsBytes(buffer.asUint8List());
+      final file = File(filePath!);
+      await file.writeAsBytes(buffer.asUint8List());
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Podaci su sačuvani kao slika!")),
-          );
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Podaci su sačuvani kao slika!")),
+        );
       }
-    } catch (e) {
+        } catch (e) {
       // Handle errors gracefully
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
