@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fond_check/utils/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -71,7 +72,7 @@ class MainScreenState extends State<MainScreen> {
             json.decode(response.body);
         final String latestVersion = latestVersionData["version"];
         final String downloadUrl = latestVersionData["url"];
-        if (latestVersion != "1.0.0") {
+        if (latestVersion != currentAppVersion) {
           showUpdateDialog(latestVersion, downloadUrl);
         }
       }
@@ -397,52 +398,53 @@ class MainScreenState extends State<MainScreen> {
               ),
             ),
             const SizedBox(height: 16),
- Row(
-  children: [
-    Flexible(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return ToggleButtons(
-            isSelected: [
-              selectedFilter == 0,
-              selectedFilter == 1,
-              selectedFilter == 2
-            ],
-            onPressed: (int index) {
-              setState(() {
-                selectedFilter = index; // Update the selected filter state
-              });
-            },
-            borderRadius: BorderRadius.circular(8.0),
-            borderColor: Colors.blue.shade900,
-            selectedBorderColor: Colors.blue.shade900,
-            selectedColor: Colors.white,
-            fillColor: Colors.blue.shade900,
-            constraints: BoxConstraints.expand(
-              width: (constraints.maxWidth - 4) / 3, // Divide equally for 3 buttons
-              height: 50, // Adjust the height if needed
+            Row(
+              children: [
+                Flexible(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return ToggleButtons(
+                        isSelected: [
+                          selectedFilter == 0,
+                          selectedFilter == 1,
+                          selectedFilter == 2
+                        ],
+                        onPressed: (int index) {
+                          setState(() {
+                            selectedFilter =
+                                index; // Update the selected filter state
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderColor: Colors.blue.shade900,
+                        selectedBorderColor: Colors.blue.shade900,
+                        selectedColor: Colors.white,
+                        fillColor: Colors.blue.shade900,
+                        constraints: BoxConstraints.expand(
+                          width: (constraints.maxWidth - 4) /
+                              3, // Divide equally for 3 buttons
+                          height: 50, // Adjust the height if needed
+                        ),
+                        children: const [
+                          Text(
+                            "Svi recepti",
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            "Fondovski",
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            "Privatni",
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            children: const [
-              Text(
-                "Svi recepti",
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                "Fondovski",
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                "Privatni",
-                textAlign: TextAlign.center,
-              ),
-            ],
-          );
-        },
-      ),
-    ),
-  ],
-),
-
             const SizedBox(height: 16),
             Row(
               children: [
